@@ -43,7 +43,6 @@ export interface RingConfig {
   outerRadius: number; // in body radii
   color: Vec3;
   opacity: number;
-  tilt?: number; // radians; defaults to body axialTilt
 }
 
 /** Procedural rocky / ocean surface params. */
@@ -52,7 +51,6 @@ export interface SurfaceConfig {
   oceanColor?: Vec3;
   iceColor?: Vec3;
   roughness?: number;
-  noiseScale?: number;
   seed?: number;
 }
 

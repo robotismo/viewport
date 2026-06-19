@@ -17,7 +17,7 @@ with [Three.js](https://threejs.org) and hand-written GLSL.
 
 ```bash
 npm install      # install deps
-npm run dev      # dev server with HMR  → http://localhost:5188
+npm run dev      # dev server with HMR  → http://localhost:5173
 npm run build    # typecheck + production build → dist/
 npm run preview  # serve the production build locally
 npm run typecheck
@@ -62,7 +62,7 @@ Tuned and measured on the target machine:
 - **Measured (production build, in-browser, 1512×945 logical @ 1.5× DPR =
   ~2268×1418 render):**
   - SOL SYSTEM / SOL / KEPLER OCEANIS / AURELIA: **120 FPS** (ProMotion cap).
-  - THE VEIL (raymarched volumetric nebula, 44 steps): **120 FPS** — the heaviest
+  - THE VEIL (raymarched volumetric nebula, 36 steps): **120 FPS** — the heaviest
     scene still pegs the refresh ceiling, so there is ~2× headroom over the 60 FPS
     contract everywhere.
   - Clean console, zero WebGL warnings; window-resize re-derives camera aspect and

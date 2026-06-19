@@ -162,6 +162,7 @@ function boot(root: HTMLElement): () => void {
     if (world) world.dispose();
     world = null;
     engine.dispose();
+    hud.dispose();
     delete (window as unknown as { __viewport?: unknown }).__viewport;
   };
 }

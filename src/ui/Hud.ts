@@ -13,8 +13,10 @@ export class Hud {
   private readonly res: HTMLElement;
   private readonly nav: HTMLElement;
   private readonly warpEl: HTMLElement;
+  private readonly root: HTMLElement;
   private readonly navButtons = new Map<string, HTMLButtonElement>();
   private warping = false;
+  private warpTimers: number[] = [];
 
   private readonly qualityButtons = new Map<string, HTMLButtonElement>();
 
@@ -62,6 +64,7 @@ export class Hud {
       <div class="warp"></div>
     `;
     container.appendChild(root);
+    this.root = root;
 
     this.title = root.querySelector('.dest-name')!;
     this.tagline = root.querySelector('.dest-tagline')!;
@@ -130,11 +133,21 @@ export class Hud {
     this.warping = true;
     this.warpEl.classList.add('active');
     this.nav.style.pointerEvents = 'none';
-    window.setTimeout(swap, 360);
-    window.setTimeout(() => {
-      this.warpEl.classList.remove('active');
-      this.nav.style.pointerEvents = '';
-      this.warping = false;
-    }, 820);
+    this.warpTimers.push(window.setTimeout(swap, 360));
+    this.warpTimers.push(
+      window.setTimeout(() => {
+        this.warpEl.classList.remove('active');
+        this.nav.style.pointerEvents = '';
+        this.warping = false;
+      }, 820),
+    );
+  }
+
+  /** Cancel pending warp timers and remove the overlay DOM. Idempotent. */
+  dispose(): void {
+    for (const id of this.warpTimers) window.clearTimeout(id);
+    this.warpTimers = [];
+    this.warping = false;
+    this.root.remove();
   }
 }

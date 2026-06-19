@@ -49,7 +49,7 @@ export const nebula: Destination = {
     target: [0, 0, 0],
     minDistance: 80,
     maxDistance: 320,
-    arriveFrom: [40, 60, 420],
+    arriveFrom: [20, 40, 250],
     autoRotate: true,
     autoRotateSpeed: 0.05,
   },
