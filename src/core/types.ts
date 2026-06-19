@@ -85,7 +85,8 @@ export interface StarfieldConfig {
   baseSize?: number;
 }
 
-/** Hero volumetric nebula (raymarched, half-res). */
+/** Hero volumetric nebula (raymarched at full composer resolution — the
+ *  most expensive shader in any scene; tune `steps` per destination). */
 export interface NebulaConfig {
   enabled: boolean;
   position: Vec3;

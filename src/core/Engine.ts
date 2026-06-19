@@ -29,6 +29,7 @@ export class Engine {
   private readonly timer = new THREE.Timer();
   private readonly updatables = new Set<Updatable>();
   private readonly ro: ResizeObserver;
+  private readonly listeners = new AbortController();
   private readonly maxPixelRatio: number;
   private readonly dynamicResolution: boolean;
 
@@ -36,6 +37,7 @@ export class Engine {
   private ambient: THREE.AmbientLight;
   private running = false;
   private contextLost = false;
+  private disposed = false;
 
   constructor(container: HTMLElement, opts: EngineOptions = {}) {
     this.container = container;
@@ -92,6 +94,7 @@ export class Engine {
     // Survive a GPU/driver hiccup: pause the loop on context loss, resume once
     // the browser restores it (Three re-uploads GL resources automatically).
     const canvas = this.renderer.domElement;
+    const signal = this.listeners.signal;
     canvas.addEventListener(
       'webglcontextlost',
       (e) => {
@@ -99,15 +102,17 @@ export class Engine {
         this.contextLost = true;
         this.renderer.setAnimationLoop(null);
       },
-      false,
+      { signal },
     );
     canvas.addEventListener(
       'webglcontextrestored',
       () => {
         this.contextLost = false;
-        if (this.running) this.renderer.setAnimationLoop(() => this.tick());
+        if (this.running && !this.disposed) {
+          this.renderer.setAnimationLoop(() => this.tick());
+        }
       },
-      false,
+      { signal },
     );
   }
 
@@ -158,6 +163,30 @@ export class Engine {
   stop(): void {
     this.running = false;
     this.renderer.setAnimationLoop(null);
+  }
+
+  /**
+   * Fully tear the engine down: stop the loop, drop all observers/listeners,
+   * dispose the post stack + controls, release the GL context and remove the
+   * canvas. Idempotent. Call this before discarding an Engine (e.g. HMR).
+   */
+  dispose(): void {
+    if (this.disposed) return;
+    this.disposed = true;
+    this.stop();
+
+    this.ro.disconnect();
+    this.listeners.abort();
+    this.rig.dispose();
+    this.post.dispose();
+
+    this.updatables.clear();
+    this.scene.remove(this.starLight, this.ambient);
+
+    const canvas = this.renderer.domElement;
+    this.renderer.dispose();
+    this.renderer.forceContextLoss();
+    canvas.remove();
   }
 
   private tick(): void {

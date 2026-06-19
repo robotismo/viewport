@@ -38,7 +38,7 @@ export const nebula: Destination = {
     colorA: [0.85, 0.2, 0.55],
     colorB: [0.25, 0.4, 0.95],
     density: 1.6,
-    steps: 44,
+    steps: 36,
     seed: 4,
     starColor: [1.0, 0.85, 0.75],
     starIntensity: 1.4,

@@ -44,9 +44,22 @@ const galaxyVert = /* glsl */ `
 `;
 
 const galaxyFrag = /* glsl */ `
-  #include lib/noise.glsl;
   uniform float uIntensity;
   varying vec3 vDir;
+
+  // Inlined value-noise fbm — this is an inline ShaderMaterial string, so the
+  // vite-plugin-glsl '#include' for lib/noise.glsl is NOT processed here.
+  float h13(vec3 p) { p = fract(p * 0.1031); p += dot(p, p.zyx + 31.32); return fract((p.x + p.y) * p.z); }
+  float vn(vec3 x) {
+    vec3 i = floor(x), f = fract(x);
+    f = f * f * (3.0 - 2.0 * f);
+    return mix(
+      mix(mix(h13(i + vec3(0,0,0)), h13(i + vec3(1,0,0)), f.x),
+          mix(h13(i + vec3(0,1,0)), h13(i + vec3(1,1,0)), f.x), f.y),
+      mix(mix(h13(i + vec3(0,0,1)), h13(i + vec3(1,0,1)), f.x),
+          mix(h13(i + vec3(0,1,1)), h13(i + vec3(1,1,1)), f.x), f.y), f.z);
+  }
+  float fbmG(vec3 p) { float a = 0.5, s = 0.0; for (int i = 0; i < 4; i++) { s += a * vn(p); p *= 2.03; a *= 0.5; } return s; }
   void main() {
     // Rotate the view direction into the galactic frame (0.5 rad tilt about X,
     // matching the star band), then read latitude/longitude.
@@ -58,8 +71,8 @@ const galaxyFrag = /* glsl */ `
     float lon = atan(gz, d.x);
 
     float band = pow(smoothstep(0.55, 0.0, abs(lat)), 2.2);
-    float mottle = 0.45 + 0.55 * fbm(d * 6.0);
-    float dust = smoothstep(0.14, 0.0, abs(lat + (fbm(d * 3.0) - 0.5) * 0.12)) * 0.7;
+    float mottle = 0.45 + 0.55 * fbmG(d * 6.0);
+    float dust = smoothstep(0.14, 0.0, abs(lat + (fbmG(d * 3.0) - 0.5) * 0.12)) * 0.7;
     float v = band * mottle * (1.0 - dust);
 
     float core = smoothstep(1.4, 0.0, abs(lon)); // brighter toward the core

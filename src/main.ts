@@ -34,10 +34,17 @@ if (!supportsWebGL2()) {
       acceleration enabled.</p>
     </div>`;
 } else {
-  boot(app);
+  const teardown = boot(app);
+  // HMR: tear the old engine (GL context), interval and listeners down before
+  // the module re-runs, or every save leaks a WebGL context until the browser
+  // hits its context cap and the page dies.
+  if (import.meta.hot) {
+    import.meta.hot.dispose(teardown);
+  }
 }
 
-function boot(root: HTMLElement): void {
+/** Boots the deck and returns a teardown that releases every owned resource. */
+function boot(root: HTMLElement): () => void {
   const reducedMotion = window.matchMedia(
     '(prefers-reduced-motion: reduce)',
   ).matches;
@@ -76,28 +83,40 @@ function boot(root: HTMLElement): void {
   load(hasDestination(fromHash) ? fromHash : DEFAULT_DESTINATION);
   engine.start();
 
+  // All window listeners share one AbortController so teardown is a single call.
+  const ac = new AbortController();
+  const { signal } = ac;
+
   // Back/forward + manual URL edits.
-  window.addEventListener('hashchange', () => {
-    const id = location.hash.slice(1);
-    if (id && id !== activeId && hasDestination(id)) go(id);
-  });
+  window.addEventListener(
+    'hashchange',
+    () => {
+      const id = location.hash.slice(1);
+      if (id && id !== activeId && hasDestination(id)) go(id);
+    },
+    { signal },
+  );
 
   // Keyboard navigation: 1–9 jump, arrows cycle.
-  window.addEventListener('keydown', (e) => {
-    if (e.metaKey || e.ctrlKey || e.altKey) return;
-    const i = destinations.findIndex((d) => d.id === activeId);
-    const n = destinations.length;
-    if (e.key >= '1' && e.key <= String(Math.min(n, 9))) {
-      go(destinations[Number(e.key) - 1].id);
-    } else if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
-      go(destinations[(i + 1) % n].id);
-    } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
-      go(destinations[(i - 1 + n) % n].id);
-    }
-  });
+  window.addEventListener(
+    'keydown',
+    (e) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const i = destinations.findIndex((d) => d.id === activeId);
+      const n = destinations.length;
+      if (e.key >= '1' && e.key <= String(Math.min(n, 9))) {
+        go(destinations[Number(e.key) - 1].id);
+      } else if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+        go(destinations[(i + 1) % n].id);
+      } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+        go(destinations[(i - 1 + n) % n].id);
+      }
+    },
+    { signal },
+  );
 
   // Telemetry tick (decoupled from the render loop).
-  window.setInterval(() => {
+  const telemetry = window.setInterval(() => {
     hud.setTelemetry(
       engine.fps,
       engine.renderer.getPixelRatio(),
@@ -108,4 +127,13 @@ function boot(root: HTMLElement): void {
 
   // Expose for debugging / browser validation.
   (window as unknown as { __viewport: unknown }).__viewport = { engine, load: go };
+
+  return () => {
+    window.clearInterval(telemetry);
+    ac.abort();
+    if (world) world.dispose();
+    world = null;
+    engine.dispose();
+    delete (window as unknown as { __viewport?: unknown }).__viewport;
+  };
 }

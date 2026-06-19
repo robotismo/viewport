@@ -36,6 +36,14 @@ void main() {
   color *= 0.66 + 0.34 * mu;
   color += uHot * pow(1.0 - mu, 4.0) * 0.9;
 
+  // H-alpha CHROMOSPHERE: a thin reddish band just inside the limb, broken into
+  // spicule-like jets by object-space noise so it flickers in place instead of
+  // smearing as the camera orbits. Reuses gran's high frequencies for the jets.
+  float band = smoothstep(0.18, 0.0, mu) * smoothstep(0.0, 0.06, mu);
+  float spicules = 0.5 + 0.5 * fbm3(p * (uScale * 2.0) + vec3(0.0, t * 1.5, 0.0));
+  vec3 hAlpha = vec3(1.0, 0.22, 0.16); // linear-ish H-alpha red
+  color += hAlpha * band * spicules * 1.4;
+
   // Light Reinhard knee so granulation and veins survive the bloom threshold
   // instead of clipping to flat white.
   color *= uIntensity;

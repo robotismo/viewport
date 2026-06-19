@@ -69,6 +69,21 @@ void main() {
         float distC = length(lp);
         float depth = clamp(distC * 1.1, 0.0, 1.0);
         vec3 emit = mix(uColorB, uColorA, depth);
+
+        // SECOND EMISSION REGION — an O-III oxygen-teal ionization front. O-III is
+        // emitted by the most highly-ionised gas, so it's biased toward the core
+        // near the hot star and broken up by its own object-space field; the
+        // magenta H-alpha then dominates the outer envelope. Two interleaved
+        // colours + a distinct structure, not one radial gradient. One cheap
+        // 3-octave fbm bounds the per-step cost.
+        float oxyField = vnoise(lp * 2.4 - vec3(7.0, uTime * 0.015, 2.0));
+        float oxyCore = smoothstep(0.85, 0.15, distC); // strong toward the centre
+        float oxy = smoothstep(0.38, 0.72, oxyField) * oxyCore;
+        vec3 oiii = vec3(0.10, 0.85, 0.78); // teal O-III
+        emit = mix(emit, oiii, clamp(oxy * 1.15, 0.0, 0.92));
+        // Ionised edge glow where the O-III front breaks into the H-alpha gas.
+        emit += oiii * smoothstep(0.30, 0.45, oxy) * (1.0 - smoothstep(0.45, 0.7, oxy)) * 0.5;
+
         // Analytic in-scatter from the embedded star: warm core falling off into
         // the magenta/blue gas, with a forward-scatter phase along the ray.
         float glow = exp(-distC * 4.0);

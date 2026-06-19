@@ -106,8 +106,11 @@ const LensFlareShader = {
 export class PostProcessing {
   readonly composer: EffectComposer;
   readonly bloom: UnrealBloomPass;
+  private readonly renderPass: RenderPass;
   private readonly vignette: ShaderPass;
   private readonly flare: ShaderPass;
+  private readonly output: OutputPass;
+  private readonly smaa: SMAAPass;
   private time = 0;
 
   constructor(
@@ -122,7 +125,8 @@ export class PostProcessing {
     });
     this.composer = new EffectComposer(renderer, rt);
 
-    this.composer.addPass(new RenderPass(scene, camera));
+    this.renderPass = new RenderPass(scene, camera);
+    this.composer.addPass(this.renderPass);
 
     this.bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.8, 0.6, 0.85);
     this.composer.addPass(this.bloom);
@@ -133,8 +137,11 @@ export class PostProcessing {
     this.vignette = new ShaderPass(VignetteGrainShader);
     this.composer.addPass(this.vignette);
 
-    this.composer.addPass(new OutputPass());
-    this.composer.addPass(new SMAAPass());
+    this.output = new OutputPass();
+    this.composer.addPass(this.output);
+
+    this.smaa = new SMAAPass();
+    this.composer.addPass(this.smaa);
   }
 
   apply(p: PostConfig): void {
@@ -155,5 +162,21 @@ export class PostProcessing {
     this.time += dt;
     this.vignette.uniforms.time.value = this.time;
     this.composer.render();
+  }
+
+  /**
+   * Release every GPU resource in the stack. EffectComposer.dispose() only frees
+   * its two ping-pong targets and copy pass — it does NOT dispose the passes it
+   * was given — so each pass (bloom RTs, SMAA RTs + lookup textures, ShaderPass
+   * materials) must be disposed explicitly here.
+   */
+  dispose(): void {
+    this.renderPass.dispose();
+    this.bloom.dispose();
+    this.flare.dispose();
+    this.vignette.dispose();
+    this.output.dispose();
+    this.smaa.dispose();
+    this.composer.dispose();
   }
 }

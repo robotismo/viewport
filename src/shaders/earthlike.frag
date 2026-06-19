@@ -48,15 +48,35 @@ void main() {
   float lightAmt = smoothstep(-0.08, 0.30, ndotl);
   vec3 color = albedo * lightAmt;
 
-  // Night-side city lights, clustered on land away from ice.
+  // Night-side city lights. Two-tier grid: a coarse "civilization" mask picks a
+  // few inhabited regions, a fine lattice scatters individual point-lights inside
+  // them. Both are biased toward coastlines — land near the shelf/sea (low h just
+  // above the shoreline) lights up, deep interiors and ice stay dark.
   float night = smoothstep(0.06, -0.12, ndotl);
-  float cities = smoothstep(0.62, 0.80, fbm(p * 9.0 + 3.0)) * land * (1.0 - ice);
-  color += uNightLights * cities * night * 1.6;
+  // Broad city-light field: glowing inhabited patches on land, brighter near the
+  // coast, with a slow flicker so the constellations feel alive. (Point-lattice
+  // dots were sub-pixel at viewing distance; broad patches read far better.)
+  float cityCoast = 0.6 + 0.4 * smoothstep(0.6, 0.515, h);
+  float cityField = smoothstep(0.56, 0.80, fbm(p * 8.0 + 3.0)) * land * (1.0 - ice) * cityCoast;
+  float tw = 0.78 + 0.22 * sin(uTime * 2.0 + fbm(p * 30.0) * 28.0);
+  color += uNightLights * cityField * night * tw * 1.9;
 
-  // Tight specular glint off oceans (day side only).
-  vec3 H = normalize(L + V);
-  float spec = pow(max(dot(N, H), 0.0), 260.0) * (1.0 - land) * (1.0 - ice);
-  color += vec3(1.0, 0.97, 0.88) * spec * clamp(ndotl, 0.0, 1.0) * 0.4;
+  // Sun glint off oceans (day side only). Elliptical streak, not a round hotspot:
+  // the highlight is stretched along the sun-azimuth (the tangent component of L)
+  // so it reads as a reflection of the sun's column on water. Fresnel brightens it
+  // toward grazing angles, and a smoothstep on the lobe AAs the edge with no dFdx.
+  float ndv = max(dot(N, V), 0.0);
+  vec3 Ltv = L - N * ndotl;                // sun direction projected onto surface
+  vec3 Lt = Ltv * inversesqrt(max(dot(Ltv, Ltv), 1e-8)); // safe normalize (zero at sub-solar point)
+  vec3 R = reflect(-V, N);
+  vec3 Rt = R - N * dot(R, N);             // view-reflection tangent component
+  float along = dot(Rt, Lt);
+  float across = length(Rt - Lt * along);
+  // Anisotropic falloff: tight across the streak, loose along it.
+  float glint = exp(-(along * along * 14.0 + across * across * 90.0));
+  float fresnel = 0.04 + 0.96 * pow(1.0 - ndv, 5.0); // Schlick, water F0≈0.02
+  float water = (1.0 - land) * (1.0 - ice);
+  color += vec3(1.0, 0.97, 0.88) * glint * fresnel * water * clamp(ndotl, 0.0, 1.0) * 1.3;
 
   gl_FragColor = vec4(color, 1.0);
 }

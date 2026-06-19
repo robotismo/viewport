@@ -17,7 +17,7 @@ export function buildGasGiant(cfg: BodyConfig, sunPosition: THREE.Vector3): Body
   const padded: THREE.Color[] = g.bands.map(C);
   while (padded.length < 6) padded.push(padded[padded.length - 1].clone());
 
-  const geo = new THREE.SphereGeometry(cfg.radius, 128, 128);
+  const geo = new THREE.SphereGeometry(cfg.radius, 96, 96);
   const mat = new THREE.ShaderMaterial({
     uniforms: {
       uTime: { value: 0 },
