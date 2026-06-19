@@ -29,6 +29,17 @@ export function buildGasGiant(cfg: BodyConfig, sunPosition: THREE.Vector3): Body
       uFlow: { value: g.flowSpeed },
       uSpot: { value: C(g.spotColor ?? [0.8, 0.3, 0.2]) },
       uHasSpot: { value: g.spotColor ? 1 : 0 },
+      uHasRings: { value: cfg.rings ? 1 : 0 },
+      uRingNormal: {
+        value: new THREE.Vector3(
+          -Math.sin(cfg.axialTilt ?? 0),
+          Math.cos(cfg.axialTilt ?? 0),
+          0,
+        ),
+      },
+      uPlanetCenter: { value: new THREE.Vector3(...cfg.position) },
+      uRingInner: { value: cfg.radius * (cfg.rings?.innerRadius ?? 1.3) },
+      uRingOuter: { value: cfg.radius * (cfg.rings?.outerRadius ?? 2.3) },
     },
     vertexShader: planetVert,
     fragmentShader: gasFrag,

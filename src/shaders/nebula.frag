@@ -8,6 +8,8 @@ uniform vec3 uColorB;
 uniform float uDensity;
 uniform float uSteps;
 uniform float uSeed;
+uniform vec3 uStarColor;
+uniform float uStarIntensity;
 
 varying vec3 vWorldPos;
 
@@ -54,13 +56,24 @@ void main() {
     vec3 lp = (p - uCenter) / uRadius;
     float fall = smoothstep(1.0, 0.12, length(lp)); // soft spherical envelope
     if (fall > 0.001) {
+      // Opaque dark dust knots (Bok globules) absorb BEFORE emission, so they
+      // silhouette the gas behind them — the contrast anchors the structure.
+      float dust = smoothstep(0.55, 0.78, nfbm(lp * 2.0 + 13.0)) * fall;
+      trans *= exp(-dust * 9.0 * dt);
+
       // Threshold + power curve carve filaments and dark lanes out of the fbm.
       float dens = nfbm(lp * 3.2 + uSeed + vec3(0.0, uTime * 0.02, 0.0));
       dens = max(dens - 0.50, 0.0) * fall;
       dens = pow(dens, 1.5) * uDensity;
       if (dens > 0.002) {
-        float depth = clamp(length(lp) * 1.1, 0.0, 1.0);
+        float distC = length(lp);
+        float depth = clamp(distC * 1.1, 0.0, 1.0);
         vec3 emit = mix(uColorB, uColorA, depth);
+        // Analytic in-scatter from the embedded star: warm core falling off into
+        // the magenta/blue gas, with a forward-scatter phase along the ray.
+        float glow = exp(-distC * 4.0);
+        float phase = 0.5 + 0.5 * dot(rd, normalize(uCenter - p + 1e-5));
+        emit += uStarColor * uStarIntensity * glow * (0.4 + 0.6 * phase);
         col += trans * emit * dens * dt * 0.9;
         trans *= exp(-dens * dt * 1.4);
         if (trans < 0.04) break;

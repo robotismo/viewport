@@ -46,15 +46,68 @@ const VignetteGrainShader = {
   `,
 };
 
+// Screen-space lens flare: ghosts + halo + chromatic dispersion sampled from the
+// genuinely-bright (HDR > 1) features of the already-bloomed image, pulled toward
+// screen centre. Asset-free; intensity is per-destination (0 = off).
+const LensFlareShader = {
+  uniforms: {
+    tDiffuse: { value: null as THREE.Texture | null },
+    uIntensity: { value: 0 },
+  },
+  vertexShader: /* glsl */ `
+    varying vec2 vUv;
+    void main() {
+      vUv = uv;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `,
+  fragmentShader: /* glsl */ `
+    uniform sampler2D tDiffuse;
+    uniform float uIntensity;
+    varying vec2 vUv;
+
+    vec3 bright(vec2 uv) {
+      if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) return vec3(0.0);
+      vec3 c = texture2D(tDiffuse, uv).rgb;
+      float l = dot(c, vec3(0.2126, 0.7152, 0.0722));
+      // Cap each tap so the searing core can't spike into discrete beads; the
+      // streak then forms from the (soft, wide) bloom halo.
+      return min(c, vec3(2.5)) * smoothstep(1.2, 4.0, l);
+    }
+
+    // Horizontal anamorphic streak: a wide, triangular-weighted blur of the
+    // brightest cores along X. Reads unmistakably as a lens artifact (never as
+    // an object), cool-tinted like a real anamorphic lens.
+    void main() {
+      vec3 base = texture2D(tDiffuse, vUv).rgb;
+      if (uIntensity <= 0.0) { gl_FragColor = vec4(base, 1.0); return; }
+
+      vec3 streak = vec3(0.0);
+      float wsum = 0.0;
+      for (int i = -28; i <= 28; i++) {
+        float t = float(i) / 28.0;
+        float w = 1.0 - abs(t);
+        w *= w;
+        streak += bright(vUv + vec2(t * 0.2, 0.0)) * w;
+        wsum += w;
+      }
+      streak /= wsum;
+      streak *= vec3(0.55, 0.8, 1.35); // cool anamorphic tint
+      gl_FragColor = vec4(base + streak * uIntensity, 1.0);
+    }
+  `,
+};
+
 /**
- * Deliberate post stack: render (linear HDR) → bloom → vignette/grain →
- * ACES tone map + sRGB (OutputPass) → SMAA edge AA. HalfFloat targets keep
- * stellar highlights in HDR so bloom blooms off real over-1.0 values.
+ * Deliberate post stack: render (linear HDR) → bloom → lens flare →
+ * vignette/grain → ACES tone map + sRGB (OutputPass) → SMAA edge AA. HalfFloat
+ * targets keep stellar highlights in HDR so bloom blooms off real over-1.0 values.
  */
 export class PostProcessing {
   readonly composer: EffectComposer;
   readonly bloom: UnrealBloomPass;
   private readonly vignette: ShaderPass;
+  private readonly flare: ShaderPass;
   private time = 0;
 
   constructor(
@@ -74,6 +127,9 @@ export class PostProcessing {
     this.bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.8, 0.6, 0.85);
     this.composer.addPass(this.bloom);
 
+    this.flare = new ShaderPass(LensFlareShader);
+    this.composer.addPass(this.flare);
+
     this.vignette = new ShaderPass(VignetteGrainShader);
     this.composer.addPass(this.vignette);
 
@@ -87,6 +143,7 @@ export class PostProcessing {
     this.bloom.threshold = p.bloomThreshold;
     this.vignette.uniforms.vignette.value = p.vignette;
     this.vignette.uniforms.grain.value = p.grain;
+    this.flare.uniforms.uIntensity.value = p.flare ?? 0;
   }
 
   setSize(w: number, h: number, pixelRatio: number): void {

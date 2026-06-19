@@ -22,10 +22,17 @@ void main() {
   // Fade both edges so the disc doesn't end on a hard line.
   density *= smoothstep(0.0, 0.05, r) * smoothstep(1.0, 0.94, r);
 
-  // Lit from either face (double-sided debris disc).
+  // Lit from either face (double-sided debris disc), with a phase function:
+  // a Henyey-Greenstein forward lobe so backlit ice glows, plus a narrow
+  // opposition surge on the near (anti-sun) arc.
   vec3 N = normalize(vWorldNormal);
   vec3 L = normalize(uSunPos - vWorldPos);
-  float lit = mix(0.35, 1.0, abs(dot(N, L)));
+  vec3 V = normalize(cameraPosition - vWorldPos);
+  float cosPhase = dot(-L, V);
+  float g = 0.6;
+  float hg = (1.0 - g * g) / pow(1.0 + g * g - 2.0 * g * cosPhase, 1.5);
+  float opp = smoothstep(0.85, 1.0, -cosPhase);
+  float lit = mix(0.3, 1.0, abs(dot(N, L))) * (1.0 + hg * 0.5 + opp * 0.6);
 
   // Planet shadow: cast a ray from this ring fragment toward the sun and test
   // it against the planet sphere. If the planet is in the way, we're in shadow.

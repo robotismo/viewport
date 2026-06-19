@@ -16,4 +16,8 @@ export function getDestination(id: string): Destination {
   return d;
 }
 
+export function hasDestination(id: string): boolean {
+  return byId.has(id);
+}
+
 export const DEFAULT_DESTINATION = sol.id;

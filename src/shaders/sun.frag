@@ -25,14 +25,20 @@ void main() {
   float veins = pow(max(gran, 0.0), 3.0);
   vec3 color = base + uHot * veins * 0.8;
 
-  // Limb brightening — corona-ward glow at the disc edge.
-  vec3 V = normalize(-vViewPos);
-  float fres = pow(1.0 - max(dot(normalize(vNormal), V), 0.0), 2.5);
-  color += uHot * fres * 1.2;
-
-  // Sparse, slow sunspots.
+  // Sparse, slow sunspots (dark umbra).
   float spot = smoothstep(0.60, 0.70, fbm(q * 0.7 + vec3(11.0, t * 0.05, 3.0)));
-  color *= 1.0 - spot * 0.55;
+  color *= 1.0 - spot * 0.6;
 
-  gl_FragColor = vec4(color * uIntensity, 1.0);
+  // Limb DARKENING — the photosphere edge is cooler and dimmer. μ = cos(angle to
+  // view); the disc centre is brightest. A tight hot rim hints at the chromosphere.
+  vec3 V = normalize(-vViewPos);
+  float mu = max(dot(normalize(vNormal), V), 0.0);
+  color *= 0.66 + 0.34 * mu;
+  color += uHot * pow(1.0 - mu, 4.0) * 0.9;
+
+  // Light Reinhard knee so granulation and veins survive the bloom threshold
+  // instead of clipping to flat white.
+  color *= uIntensity;
+  color /= (1.0 + 0.07 * color);
+  gl_FragColor = vec4(color, 1.0);
 }

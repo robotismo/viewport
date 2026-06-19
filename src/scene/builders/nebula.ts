@@ -20,6 +20,8 @@ export function buildNebula(cfg: NebulaConfig): BodyHandle {
       uDensity: { value: cfg.density },
       uSteps: { value: cfg.steps ?? 40 },
       uSeed: { value: cfg.seed ?? 0 },
+      uStarColor: { value: C(cfg.starColor ?? [1, 0.9, 0.85]) },
+      uStarIntensity: { value: cfg.starIntensity ?? 0 },
     },
     vertexShader: nebulaVert,
     fragmentShader: nebulaFrag,

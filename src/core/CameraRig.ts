@@ -27,6 +27,7 @@ export class CameraRig {
   constructor(
     private camera: THREE.PerspectiveCamera,
     dom: HTMLElement,
+    private reducedMotion = false,
   ) {
     this.controls = new OrbitControls(camera, dom);
     this.controls.enableDamping = true;
@@ -41,15 +42,15 @@ export class CameraRig {
     this.controls.target.copy(this.target);
     this.controls.minDistance = cfg.minDistance ?? 0.1;
     this.controls.maxDistance = cfg.maxDistance ?? 5000;
-    this.controls.autoRotate = cfg.autoRotate ?? false;
+    this.controls.autoRotate = this.reducedMotion ? false : (cfg.autoRotate ?? false);
     this.controls.autoRotateSpeed = cfg.autoRotateSpeed ?? 0.2;
 
     const rest = new THREE.Vector3(cfg.position[0], cfg.position[1], cfg.position[2]);
-    if (cfg.arriveFrom) {
+    if (cfg.arriveFrom && !this.reducedMotion) {
       const from = new THREE.Vector3(cfg.arriveFrom[0], cfg.arriveFrom[1], cfg.arriveFrom[2]);
       this.camera.position.copy(from);
       this.controls.enabled = false;
-      this.arrival = { from, to: rest, t: 0, duration: 2.4 };
+      this.arrival = { from, to: rest, t: 0, duration: 1.8 };
     } else {
       this.camera.position.copy(rest);
       this.controls.enabled = true;

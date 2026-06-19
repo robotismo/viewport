@@ -56,6 +56,18 @@ float fbm6(vec3 p) {
   return s;
 }
 
+// Cheap 3-octave fbm — for domain-warp offsets where fine detail is wasted.
+float fbm3(vec3 p) {
+  float a = 0.5;
+  float s = 0.0;
+  for (int i = 0; i < 3; i++) {
+    s += a * vnoise(p);
+    p *= 2.03;
+    a *= 0.5;
+  }
+  return s;
+}
+
 // Ridged fbm — sharp filaments (gas-giant turbulence, nebula wisps).
 float ridged(vec3 p) {
   float a = 0.5;

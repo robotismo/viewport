@@ -130,6 +130,7 @@ body {
   backdrop-filter: blur(3px);
 }
 .nav-item:hover { border-color: var(--hud); background: rgba(143, 208, 255, 0.14); transform: translateX(-4px); }
+.nav-item:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
 .nav-item .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--hud-dim); transition: all 0.18s; }
 .nav-item.active { border-color: var(--amber); color: #fff; }
 .nav-item.active .dot { background: var(--amber); box-shadow: 0 0 10px var(--amber); }
@@ -163,6 +164,23 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .warp.active { animation-duration: 0.3s; }
 }
+
+/* ── No-WebGL2 fallback ───────────────────────────────────────────────────── */
+.fallback {
+  position: relative;
+  max-width: 540px;
+  margin: 18vh auto 0;
+  padding: 40px 44px;
+  border: 1px solid var(--edge);
+  border-radius: 10px;
+  background: var(--glass);
+}
+.fallback h1 { font-size: 30px; letter-spacing: 8px; color: #eaf6ff; margin: 0 0 18px; }
+.fallback p { font-size: 13px; line-height: 1.8; color: #b8d8f0; opacity: 0.85; }
+.fallback b { color: var(--amber); }
+.fallback-corner { position: absolute; width: 22px; height: 22px; border: 2px solid var(--hud); }
+.fallback-corner.tl { top: -1px; left: -1px; border-right: 0; border-bottom: 0; }
+.fallback-corner.br { bottom: -1px; right: -1px; border-left: 0; border-top: 0; }
 
 @media (max-width: 720px) {
   .title-block { top: 36px; left: 30px; }

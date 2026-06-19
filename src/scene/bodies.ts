@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import type { BodyConfig } from '../core/types';
 import { buildEarthlike } from './builders/earthlike';
 import { buildGasGiant } from './builders/gasgiant';
+import { buildRocky } from './builders/rocky';
 import { buildRings } from './builders/rings';
 import sunVert from '../shaders/sun.vert';
 import sunFrag from '../shaders/sun.frag';
@@ -108,6 +109,8 @@ function buildBaseBody(cfg: BodyConfig, sunPosition: THREE.Vector3): BodyHandle 
       return buildEarthlike(cfg, sunPosition);
     case 'gasgiant':
       return buildGasGiant(cfg, sunPosition);
+    case 'rocky':
+      return buildRocky(cfg, sunPosition);
     default:
       return buildSimplePlanet(cfg);
   }

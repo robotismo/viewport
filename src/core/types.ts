@@ -56,6 +56,13 @@ export interface SurfaceConfig {
   seed?: number;
 }
 
+/** Animated cloud shell (earthlike). */
+export interface CloudConfig {
+  color: Vec3;
+  coverage: number; // 0..1 — fraction of the globe under cloud
+  speed: number;
+}
+
 export interface BodyConfig {
   id: string;
   kind: BodyKind;
@@ -68,6 +75,7 @@ export interface BodyConfig {
   gasGiant?: GasGiantConfig;
   rings?: RingConfig;
   surface?: SurfaceConfig;
+  clouds?: CloudConfig;
 }
 
 export interface StarfieldConfig {
@@ -87,6 +95,8 @@ export interface NebulaConfig {
   density: number;
   steps?: number;
   seed?: number;
+  starColor?: Vec3; // embedded-star in-scatter tint
+  starIntensity?: number;
 }
 
 export interface CameraConfig {
@@ -106,6 +116,7 @@ export interface PostConfig {
   bloomThreshold: number;
   vignette: number; // 0..1
   grain: number; // 0..1
+  flare?: number; // screen-space lens flare intensity (0 = off)
 }
 
 export interface LightConfig {

@@ -14,6 +14,7 @@ export class Hud {
   private readonly nav: HTMLElement;
   private readonly warpEl: HTMLElement;
   private readonly navButtons = new Map<string, HTMLButtonElement>();
+  private warping = false;
 
   constructor(
     container: HTMLElement,
@@ -23,20 +24,20 @@ export class Hud {
     const root = document.createElement('div');
     root.className = 'hud';
     root.innerHTML = `
-      <div class="frame">
+      <div class="frame" aria-hidden="true">
         <span class="corner tl"></span><span class="corner tr"></span>
         <span class="corner bl"></span><span class="corner br"></span>
       </div>
-      <div class="scanlines"></div>
+      <div class="scanlines" aria-hidden="true"></div>
       <header class="title-block">
         <div class="eyebrow">VIEWPORT · OBSERVATION DECK</div>
-        <h1 class="dest-name"></h1>
+        <h1 class="dest-name" aria-live="polite"></h1>
         <div class="dest-tagline"></div>
       </header>
-      <aside class="nav-console">
-        <div class="nav-head">◆ NAV CONSOLE</div>
-        <div class="nav-list"></div>
-        <div class="nav-hint">DRAG TO LOOK · SCROLL TO ZOOM</div>
+      <aside class="nav-console" role="navigation" aria-label="Destinations">
+        <div class="nav-head" aria-hidden="true">◆ NAV CONSOLE</div>
+        <div class="nav-list" role="radiogroup" aria-label="Destination"></div>
+        <div class="nav-hint" aria-hidden="true">DRAG TO LOOK · SCROLL TO ZOOM</div>
       </aside>
       <footer class="telemetry">
         <div class="intent"></div>
@@ -61,7 +62,10 @@ export class Hud {
     for (const d of this.destinations) {
       const b = document.createElement('button');
       b.className = 'nav-item';
-      b.innerHTML = `<span class="dot"></span><span class="nm">${d.name}</span>`;
+      b.setAttribute('role', 'radio');
+      b.setAttribute('aria-checked', 'false');
+      b.setAttribute('aria-label', d.name);
+      b.innerHTML = `<span class="dot" aria-hidden="true"></span><span class="nm">${d.name}</span>`;
       b.addEventListener('click', () => this.onSelect(d.id));
       this.nav.appendChild(b);
       this.navButtons.set(d.id, b);
@@ -72,7 +76,11 @@ export class Hud {
     this.title.textContent = dest.name;
     this.tagline.textContent = dest.tagline;
     this.intent.textContent = dest.intent;
-    for (const [id, b] of this.navButtons) b.classList.toggle('active', id === dest.id);
+    for (const [id, b] of this.navButtons) {
+      const on = id === dest.id;
+      b.classList.toggle('active', on);
+      b.setAttribute('aria-checked', on ? 'true' : 'false');
+    }
   }
 
   setTelemetry(fps: number, pixelRatio: number, w: number, h: number): void {
@@ -81,10 +89,21 @@ export class Hud {
     this.res.textContent = `${Math.round(w * pixelRatio)}×${Math.round(h * pixelRatio)} · ${pixelRatio.toFixed(2)}x`;
   }
 
-  /** Warp flash that masks the destination swap mid-transition. */
+  /**
+   * Warp flash that masks the destination swap mid-transition. Re-entrancy-safe:
+   * ignores calls while a warp is in flight, and locks the nav for the duration
+   * so a queued swap can't overwrite a BuiltWorld before its dispose() runs.
+   */
   warp(swap: () => void): void {
+    if (this.warping) return;
+    this.warping = true;
     this.warpEl.classList.add('active');
+    this.nav.style.pointerEvents = 'none';
     window.setTimeout(swap, 360);
-    window.setTimeout(() => this.warpEl.classList.remove('active'), 820);
+    window.setTimeout(() => {
+      this.warpEl.classList.remove('active');
+      this.nav.style.pointerEvents = '';
+      this.warping = false;
+    }, 820);
   }
 }

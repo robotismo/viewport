@@ -33,6 +33,41 @@ const starFrag = /* glsl */ `
   }
 `;
 
+// Luminous Milky Way band — an inward-facing far shell painting a galactic
+// plane with fbm mottling, dust lanes, and a warm core / cool arms gradient.
+const galaxyVert = /* glsl */ `
+  varying vec3 vDir;
+  void main() {
+    vDir = normalize(position);
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`;
+
+const galaxyFrag = /* glsl */ `
+  #include lib/noise.glsl;
+  uniform float uIntensity;
+  varying vec3 vDir;
+  void main() {
+    // Rotate the view direction into the galactic frame (0.5 rad tilt about X,
+    // matching the star band), then read latitude/longitude.
+    float ct = cos(0.5), st = sin(0.5);
+    vec3 d = normalize(vDir);
+    float gy = d.y * ct + d.z * st;
+    float gz = -d.y * st + d.z * ct;
+    float lat = asin(clamp(gy, -1.0, 1.0));
+    float lon = atan(gz, d.x);
+
+    float band = pow(smoothstep(0.55, 0.0, abs(lat)), 2.2);
+    float mottle = 0.45 + 0.55 * fbm(d * 6.0);
+    float dust = smoothstep(0.14, 0.0, abs(lat + (fbm(d * 3.0) - 0.5) * 0.12)) * 0.7;
+    float v = band * mottle * (1.0 - dust);
+
+    float core = smoothstep(1.4, 0.0, abs(lon)); // brighter toward the core
+    vec3 col = mix(vec3(0.55, 0.66, 0.95), vec3(0.95, 0.85, 0.68), core);
+    gl_FragColor = vec4(col * v * uIntensity, 1.0);
+  }
+`;
+
 // Deterministic PRNG so the sky is stable across reloads.
 function mulberry32(seed: number) {
   let a = seed >>> 0;
@@ -132,14 +167,39 @@ export function createStarfield(cfg: StarfieldConfig): BodyHandle {
   points.frustumCulled = false;
   points.renderOrder = -1;
 
+  const group = new THREE.Group();
+  group.add(points);
+
+  // Galaxy band shell (behind the stars).
+  let galGeo: THREE.SphereGeometry | null = null;
+  let galMat: THREE.ShaderMaterial | null = null;
+  if (cfg.milkyWay !== false) {
+    galGeo = new THREE.SphereGeometry(radius * 1.08, 48, 48);
+    galMat = new THREE.ShaderMaterial({
+      uniforms: { uIntensity: { value: 0.32 } },
+      vertexShader: galaxyVert,
+      fragmentShader: galaxyFrag,
+      side: THREE.BackSide,
+      transparent: true,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
+    const galaxy = new THREE.Mesh(galGeo, galMat);
+    galaxy.frustumCulled = false;
+    galaxy.renderOrder = -2;
+    group.add(galaxy);
+  }
+
   return {
-    object: points,
+    object: group,
     update(_dt, t) {
       mat.uniforms.uTime.value = t;
     },
     dispose() {
       geo.dispose();
       mat.dispose();
+      galGeo?.dispose();
+      galMat?.dispose();
     },
   };
 }

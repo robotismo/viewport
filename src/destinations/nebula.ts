@@ -40,6 +40,8 @@ export const nebula: Destination = {
     density: 1.6,
     steps: 44,
     seed: 4,
+    starColor: [1.0, 0.85, 0.75],
+    starIntensity: 1.4,
   },
   starfield: { starCount: 12000, milkyWay: true, baseSize: 1.8 },
   camera: {
@@ -51,6 +53,6 @@ export const nebula: Destination = {
     autoRotate: true,
     autoRotateSpeed: 0.05,
   },
-  post: { exposure: 1.05, bloomStrength: 0.5, bloomRadius: 0.65, bloomThreshold: 0.72, vignette: 0.55, grain: 0.03 },
+  post: { exposure: 1.05, bloomStrength: 0.5, bloomRadius: 0.65, bloomThreshold: 0.72, vignette: 0.55, grain: 0.03, flare: 0.45 },
   background: [0.005, 0.002, 0.01],
 };

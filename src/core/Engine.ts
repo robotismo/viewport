@@ -9,6 +9,7 @@ const col = (c: [number, number, number]) => new THREE.Color(c[0], c[1], c[2]);
 export interface EngineOptions {
   maxPixelRatio?: number;
   dynamicResolution?: boolean;
+  reducedMotion?: boolean;
 }
 
 /**
@@ -34,6 +35,7 @@ export class Engine {
   private starLight: THREE.PointLight;
   private ambient: THREE.AmbientLight;
   private running = false;
+  private contextLost = false;
 
   constructor(container: HTMLElement, opts: EngineOptions = {}) {
     this.container = container;
@@ -70,7 +72,11 @@ export class Engine {
     this.ambient = new THREE.AmbientLight(0x223044, 0.05);
     this.scene.add(this.ambient);
 
-    this.rig = new CameraRig(this.camera, this.renderer.domElement);
+    this.rig = new CameraRig(
+      this.camera,
+      this.renderer.domElement,
+      opts.reducedMotion ?? false,
+    );
     this.post = new PostProcessing(this.renderer, this.scene, this.camera);
     this.post.setSize(this.w, this.h, this.maxPixelRatio);
 
@@ -82,6 +88,27 @@ export class Engine {
     // clock whenever the document reports hidden (e.g. headless/embedded).
     this.ro = new ResizeObserver(() => this.onResize());
     this.ro.observe(container);
+
+    // Survive a GPU/driver hiccup: pause the loop on context loss, resume once
+    // the browser restores it (Three re-uploads GL resources automatically).
+    const canvas = this.renderer.domElement;
+    canvas.addEventListener(
+      'webglcontextlost',
+      (e) => {
+        e.preventDefault();
+        this.contextLost = true;
+        this.renderer.setAnimationLoop(null);
+      },
+      false,
+    );
+    canvas.addEventListener(
+      'webglcontextrestored',
+      () => {
+        this.contextLost = false;
+        if (this.running) this.renderer.setAnimationLoop(() => this.tick());
+      },
+      false,
+    );
   }
 
   private get w(): number {
@@ -125,7 +152,7 @@ export class Engine {
     if (this.running) return;
     this.running = true;
     this.timer.reset();
-    this.renderer.setAnimationLoop(() => this.tick());
+    if (!this.contextLost) this.renderer.setAnimationLoop(() => this.tick());
   }
 
   stop(): void {

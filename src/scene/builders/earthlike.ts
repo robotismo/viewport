@@ -4,6 +4,7 @@ import type { BodyHandle } from '../bodies';
 import planetVert from '../../shaders/planet.vert';
 import earthFrag from '../../shaders/earthlike.frag';
 import atmoFrag from '../../shaders/atmosphere.frag';
+import cloudFrag from '../../shaders/clouds.frag';
 
 const C = (c: [number, number, number]) => new THREE.Color(c[0], c[1], c[2]);
 
@@ -14,7 +15,7 @@ export function buildEarthlike(cfg: BodyConfig, sunPosition: THREE.Vector3): Bod
   group.rotation.z = cfg.axialTilt ?? 0;
 
   const s = cfg.surface ?? {};
-  const surfGeo = new THREE.SphereGeometry(cfg.radius, 128, 128);
+  const surfGeo = new THREE.SphereGeometry(cfg.radius, 96, 96);
   const surfMat = new THREE.ShaderMaterial({
     uniforms: {
       uTime: { value: 0 },
@@ -30,6 +31,30 @@ export function buildEarthlike(cfg: BodyConfig, sunPosition: THREE.Vector3): Bod
   });
   const surface = new THREE.Mesh(surfGeo, surfMat);
   group.add(surface);
+
+  // Animated cloud shell just above the surface.
+  let cloudGeo: THREE.SphereGeometry | null = null;
+  let cloudMat: THREE.ShaderMaterial | null = null;
+  let clouds: THREE.Mesh | null = null;
+  if (cfg.clouds) {
+    cloudGeo = new THREE.SphereGeometry(cfg.radius * 1.012, 64, 64);
+    cloudMat = new THREE.ShaderMaterial({
+      uniforms: {
+        uTime: { value: 0 },
+        uSunPos: { value: sunPosition.clone() },
+        uColor: { value: C(cfg.clouds.color) },
+        uCoverage: { value: cfg.clouds.coverage },
+        uSpeed: { value: cfg.clouds.speed },
+      },
+      vertexShader: planetVert,
+      fragmentShader: cloudFrag,
+      transparent: true,
+      depthWrite: false,
+      side: THREE.FrontSide,
+    });
+    clouds = new THREE.Mesh(cloudGeo, cloudMat);
+    group.add(clouds);
+  }
 
   let atmoGeo: THREE.SphereGeometry | null = null;
   let atmoMat: THREE.ShaderMaterial | null = null;
@@ -63,12 +88,18 @@ export function buildEarthlike(cfg: BodyConfig, sunPosition: THREE.Vector3): Bod
     update(dt, t) {
       surface.rotation.y += spin * dt;
       surfMat.uniforms.uTime.value = t;
+      if (clouds && cloudMat) {
+        clouds.rotation.y += spin * 1.4 * dt; // clouds drift faster than ground
+        cloudMat.uniforms.uTime.value = t;
+      }
     },
     dispose() {
       surfGeo.dispose();
       surfMat.dispose();
       atmoGeo?.dispose();
       atmoMat?.dispose();
+      cloudGeo?.dispose();
+      cloudMat?.dispose();
     },
   };
 }
