@@ -53,12 +53,19 @@ Tuned and measured on the target machine:
   XDR (3024×1964 native, 120 Hz ProMotion), macOS 26.5, Chrome.
 - **Contract:** 60 FPS floor at the default scaled resolution, DPR capped at 1.5
   with dynamic resolution scaling.
-- **Measured (in-browser, 1512×945 logical @ 1.5× DPR = ~2268×1418 render):**
-  - SOL / KEPLER OCEANIS / AURELIA / SOL SYSTEM: **60 FPS** (120 FPS on the
-    lightest single-star scene with headroom to spare).
-  - THE VEIL (raymarched volumetric nebula, 44 steps): **60 FPS**.
+- **Measured (production build, in-browser, 1512×945 logical @ 1.5× DPR =
+  ~2268×1418 render):**
+  - SOL SYSTEM / SOL / KEPLER OCEANIS / AURELIA: **120 FPS** (ProMotion cap).
+  - THE VEIL (raymarched volumetric nebula, 44 steps): **120 FPS** — the heaviest
+    scene still pegs the refresh ceiling, so there is ~2× headroom over the 60 FPS
+    contract everywhere.
   - Clean console, zero WebGL warnings; window-resize re-derives camera aspect and
-    all render targets correctly.
+    all render targets correctly; warp navigation tears down and rebuilds each world
+    with no leaks.
+
+  The 60 FPS floor and DPR-1.5 cap are deliberately conservative so the experience
+  stays smooth if the machine is thermally throttled, on battery, or sharing the
+  GPU — the `PerfMonitor` only ever needs to step down under those conditions.
 
 **The lever on this machine is fillrate**, not shader math — the M2 Pro eats analytic
 shaders, but stacked fullscreen post passes at full Retina DPR are the cost. So the
