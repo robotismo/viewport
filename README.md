@@ -21,7 +21,13 @@ npm run dev      # dev server with HMR  → http://localhost:5188
 npm run build    # typecheck + production build → dist/
 npm run preview  # serve the production build locally
 npm run typecheck
+npm test         # vitest: destination-config validation
 ```
+
+**Controls.** Drag to look, scroll to zoom, click a destination or press **1–5** /
+**↑↓** to travel. Destinations are deep-linkable (`/#ocean-world`). Honors
+`prefers-reduced-motion` (no warp/auto-rotate), recovers from WebGL context loss,
+and shows a graceful message if WebGL2 is unavailable.
 
 **Deploy.** Pushing to `main` triggers `.github/workflows/deploy.yml`, which builds
 and publishes `dist/` to GitHub Pages. The Vite `base` is `'./'` (relative asset
@@ -92,16 +98,23 @@ with per-destination exposure.
 
 ### Custom shaders (`src/shaders/`)
 
-- **sun** — convective granulation (scrolling FBM), limb brightening, drifting
-  sunspots, additive corona shell.
-- **earthlike + atmosphere** — procedural continents/oceans/ice, day/night
-  terminator, night-side city lights, ocean specular; analytic atmospheric shell
-  (Fresnel limb glow gated by the sun, warming to a sunset band at the terminator).
-- **gasgiant** — domain-warped zonal bands with a great-spot storm and terminator.
-- **rings** — procedural ringlets + Cassini division, with an analytic planet-shadow
-  notch (per-fragment ray–sphere test toward the sun).
-- **nebula** — raymarched FBM volume inside an analytic bounding sphere; emission +
-  transmittance accumulation with a density threshold that carves filaments.
+- **sun** — convective granulation (scrolling FBM), physically-correct limb
+  darkening with a hot chromospheric rim, drifting sunspots, Reinhard knee so
+  detail survives bloom, additive corona shell.
+- **earthlike** — domain-warped fractal continents, oceans/ice/shelf, day/night
+  terminator, night-side city lights, ocean specular, plus an **animated cloud
+  shell** and an analytic atmospheric scattering shell (sun-gated limb glow →
+  sunset band at the terminator).
+- **rocky** — fbm rock tones, crater rings, polar frost, terminator.
+- **gasgiant** — domain-warped zonal bands, a differentially-rotating great-spot
+  vortex, terminator, and the **ring shadow cast across the clouds** (ray-to-ring-
+  plane test).
+- **rings** — procedural ringlets + Cassini division, planet-shadow notch, and a
+  Henyey-Greenstein forward-scatter + opposition phase function.
+- **nebula** — raymarched FBM volume (analytic bounding sphere); emission +
+  transmittance with dark Bok globules and embedded-star in-scatter.
+- **starfield** — procedural points + a luminous Milky Way band shell (shared).
+- **post** — screen-space anamorphic lens-flare streak off bright HDR sources.
 
 All noise is shared via `src/shaders/lib/noise.glsl` (`#include`).
 
@@ -114,11 +127,11 @@ is **data, not new code paths**.
 
 ```
 src/
-  core/         Engine (renderer + loop + resize + dynamic res), PostProcessing,
-                CameraRig (constrained orbit + cinematic warp arrival), PerfMonitor,
-                types.ts  ← the Destination contract
+  core/         Engine (renderer + loop + resize + dynamic res + context-loss),
+                PostProcessing, CameraRig (orbit + warp arrival), PerfMonitor,
+                types.ts ← the Destination contract, validate.ts (+ .test.ts)
   scene/        World (build/teardown), bodies (dispatcher), Starfield,
-                builders/ (earthlike, gasgiant, rings, nebula)
+                builders/ (earthlike, gasgiant, rocky, rings, nebula)
   shaders/      GLSL (.vert/.frag) + lib/noise.glsl
   destinations/ one config file per destination + registry
   ui/           Hud (window frame, nav console, telemetry, warp)

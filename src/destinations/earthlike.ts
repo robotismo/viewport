@@ -39,6 +39,15 @@ export const earthlike: Destination = {
         speed: 0.015,
       },
     },
+    {
+      // A small cratered moon, off-axis and behind, for scale + a matching crescent.
+      id: 'moon',
+      kind: 'rocky',
+      radius: 0.7,
+      position: [-6.5, 2.2, -4],
+      rotationPeriod: 200,
+      surface: { landColor: [0.46, 0.44, 0.42], iceColor: [0.7, 0.72, 0.78], seed: 11 },
+    },
   ],
   starfield: { starCount: 8000, milkyWay: true },
   camera: {
