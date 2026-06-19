@@ -1,0 +1,90 @@
+import type { Destination } from '../core/types';
+
+/**
+ * The diegetic observation-deck overlay: corner brackets framing the "glass",
+ * a title block, a nav console for travelling between destinations, and a live
+ * telemetry readout. All DOM — it sits above the canvas and never touches GL.
+ */
+export class Hud {
+  private readonly title: HTMLElement;
+  private readonly tagline: HTMLElement;
+  private readonly intent: HTMLElement;
+  private readonly fps: HTMLElement;
+  private readonly res: HTMLElement;
+  private readonly nav: HTMLElement;
+  private readonly warpEl: HTMLElement;
+  private readonly navButtons = new Map<string, HTMLButtonElement>();
+
+  constructor(
+    container: HTMLElement,
+    private readonly destinations: Destination[],
+    private readonly onSelect: (id: string) => void,
+  ) {
+    const root = document.createElement('div');
+    root.className = 'hud';
+    root.innerHTML = `
+      <div class="frame">
+        <span class="corner tl"></span><span class="corner tr"></span>
+        <span class="corner bl"></span><span class="corner br"></span>
+      </div>
+      <div class="scanlines"></div>
+      <header class="title-block">
+        <div class="eyebrow">VIEWPORT · OBSERVATION DECK</div>
+        <h1 class="dest-name"></h1>
+        <div class="dest-tagline"></div>
+      </header>
+      <aside class="nav-console">
+        <div class="nav-head">◆ NAV CONSOLE</div>
+        <div class="nav-list"></div>
+        <div class="nav-hint">DRAG TO LOOK · SCROLL TO ZOOM</div>
+      </aside>
+      <footer class="telemetry">
+        <div class="intent"></div>
+        <div class="readout">
+          <span class="rd"><b>FPS</b> <span class="fps">—</span></span>
+          <span class="rd"><b>RENDER</b> <span class="res">—</span></span>
+          <span class="rd"><b>STATUS</b> <span class="ok">NOMINAL</span></span>
+        </div>
+      </footer>
+      <div class="warp"></div>
+    `;
+    container.appendChild(root);
+
+    this.title = root.querySelector('.dest-name')!;
+    this.tagline = root.querySelector('.dest-tagline')!;
+    this.intent = root.querySelector('.intent')!;
+    this.fps = root.querySelector('.fps')!;
+    this.res = root.querySelector('.res')!;
+    this.nav = root.querySelector('.nav-list')!;
+    this.warpEl = root.querySelector('.warp')!;
+
+    for (const d of this.destinations) {
+      const b = document.createElement('button');
+      b.className = 'nav-item';
+      b.innerHTML = `<span class="dot"></span><span class="nm">${d.name}</span>`;
+      b.addEventListener('click', () => this.onSelect(d.id));
+      this.nav.appendChild(b);
+      this.navButtons.set(d.id, b);
+    }
+  }
+
+  setDestination(dest: Destination): void {
+    this.title.textContent = dest.name;
+    this.tagline.textContent = dest.tagline;
+    this.intent.textContent = dest.intent;
+    for (const [id, b] of this.navButtons) b.classList.toggle('active', id === dest.id);
+  }
+
+  setTelemetry(fps: number, pixelRatio: number, w: number, h: number): void {
+    this.fps.textContent = String(Math.round(fps));
+    this.fps.classList.toggle('warn', fps < 50);
+    this.res.textContent = `${Math.round(w * pixelRatio)}×${Math.round(h * pixelRatio)} · ${pixelRatio.toFixed(2)}x`;
+  }
+
+  /** Warp flash that masks the destination swap mid-transition. */
+  warp(swap: () => void): void {
+    this.warpEl.classList.add('active');
+    window.setTimeout(swap, 360);
+    window.setTimeout(() => this.warpEl.classList.remove('active'), 820);
+  }
+}
