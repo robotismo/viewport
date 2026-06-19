@@ -40,8 +40,7 @@ export class PerfMonitor {
       this.above += 0.5;
       this.below = 0;
       if (this.above >= 3.0 && idx < STEPS.length - 1) {
-        const up = clampStep(STEPS[idx + 1], max);
-        if (up <= max) next = up;
+        next = clampStep(STEPS[idx + 1], max);
         this.above = 0;
       }
     } else {

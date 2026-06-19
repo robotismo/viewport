@@ -84,6 +84,16 @@ void main() {
         // Ionised edge glow where the O-III front breaks into the H-alpha gas.
         emit += oiii * smoothstep(0.30, 0.45, oxy) * (1.0 - smoothstep(0.45, 0.7, oxy)) * 0.5;
 
+        // THIRD EMISSION TIER — S-II deep-red/gold from the least-ionised gas on
+        // the OUTER envelope (the spatial complement of the core-biased O-III),
+        // broken by its own object-space field. Completes the SHO palette so the
+        // rim glows warm instead of fading to flat magenta.
+        float sulfField = vnoise(lp * 1.9 + vec3(3.0, uTime * 0.012, 8.0));
+        float sulfShell = smoothstep(0.45, 0.95, distC); // strong toward the rim
+        float sulf = smoothstep(0.40, 0.74, sulfField) * sulfShell;
+        vec3 sii = vec3(0.95, 0.28, 0.16); // deep-red S-II
+        emit = mix(emit, sii, clamp(sulf * 0.85, 0.0, 0.7));
+
         // Analytic in-scatter from the embedded star: warm core falling off into
         // the magenta/blue gas, with a forward-scatter phase along the ray.
         float glow = exp(-distC * 4.0);

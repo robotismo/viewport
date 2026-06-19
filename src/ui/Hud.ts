@@ -16,10 +16,14 @@ export class Hud {
   private readonly navButtons = new Map<string, HTMLButtonElement>();
   private warping = false;
 
+  private readonly qualityButtons = new Map<string, HTMLButtonElement>();
+
   constructor(
     container: HTMLElement,
     private readonly destinations: Destination[],
     private readonly onSelect: (id: string) => void,
+    private readonly onQuality: (q: 'low' | 'auto' | 'high') => void = () => {},
+    initialQuality: 'low' | 'auto' | 'high' = 'auto',
   ) {
     const root = document.createElement('div');
     root.className = 'hud';
@@ -37,6 +41,14 @@ export class Hud {
       <aside class="nav-console" role="navigation" aria-label="Destinations">
         <div class="nav-head" aria-hidden="true">◆ NAV CONSOLE</div>
         <div class="nav-list" role="radiogroup" aria-label="Destination"></div>
+        <div class="quality-control" role="radiogroup" aria-label="Render quality">
+          <span class="qc-label" aria-hidden="true">QUALITY</span>
+          <div class="qc-seg">
+            <button class="qc-item" role="radio" data-q="low" aria-checked="false" aria-label="Low quality">LOW</button>
+            <button class="qc-item" role="radio" data-q="auto" aria-checked="false" aria-label="Auto quality">AUTO</button>
+            <button class="qc-item" role="radio" data-q="high" aria-checked="false" aria-label="High quality">HIGH</button>
+          </div>
+        </div>
         <div class="nav-hint" aria-hidden="true">DRAG TO LOOK · SCROLL TO ZOOM</div>
       </aside>
       <footer class="telemetry">
@@ -69,6 +81,25 @@ export class Hud {
       b.addEventListener('click', () => this.onSelect(d.id));
       this.nav.appendChild(b);
       this.navButtons.set(d.id, b);
+    }
+
+    for (const b of root.querySelectorAll<HTMLButtonElement>('.qc-item')) {
+      const q = b.dataset.q as 'low' | 'auto' | 'high';
+      b.addEventListener('click', () => {
+        this.setQuality(q);
+        this.onQuality(q);
+      });
+      this.qualityButtons.set(q, b);
+    }
+    this.setQuality(initialQuality);
+  }
+
+  /** Reflect the active quality segment (does not invoke the callback). */
+  setQuality(q: 'low' | 'auto' | 'high'): void {
+    for (const [id, b] of this.qualityButtons) {
+      const on = id === q;
+      b.classList.toggle('active', on);
+      b.setAttribute('aria-checked', on ? 'true' : 'false');
     }
   }
 

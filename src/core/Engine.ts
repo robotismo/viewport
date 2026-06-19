@@ -30,8 +30,12 @@ export class Engine {
   private readonly updatables = new Set<Updatable>();
   private readonly ro: ResizeObserver;
   private readonly listeners = new AbortController();
-  private readonly maxPixelRatio: number;
-  private readonly dynamicResolution: boolean;
+  private maxPixelRatio: number;
+  private dynamicResolution: boolean;
+  /** Hardware DPR ceiling, captured once so AUTO/HIGH can recover after LOW. */
+  private readonly deviceMax: number;
+  /** Current user quality preference; AUTO defers to the dynamic governor. */
+  quality: 'low' | 'auto' | 'high' = 'auto';
 
   private starLight: THREE.PointLight;
   private ambient: THREE.AmbientLight;
@@ -41,8 +45,9 @@ export class Engine {
 
   constructor(container: HTMLElement, opts: EngineOptions = {}) {
     this.container = container;
+    this.deviceMax = window.devicePixelRatio || 1;
     this.maxPixelRatio =
-      opts.maxPixelRatio ?? Math.min(window.devicePixelRatio || 1, 1.5);
+      opts.maxPixelRatio ?? Math.min(this.deviceMax, 1.5);
     this.dynamicResolution = opts.dynamicResolution ?? true;
 
     this.renderer = new THREE.WebGLRenderer({
@@ -143,6 +148,38 @@ export class Engine {
 
   setExposure(e: number): void {
     this.renderer.toneMappingExposure = e;
+  }
+
+  /**
+   * User quality preference.
+   *  LOW  — pin DPR to 1.0, governor off (max framerate, softest image).
+   *  AUTO — dynamic governor up to the device's natural 1.5x ceiling.
+   *  HIGH — pin DPR to the device ceiling (up to 2.0x), governor off.
+   * Applies immediately: sets the pixel ratio and resizes the post stack so
+   * the change is visible this frame rather than after the next governor tick.
+   */
+  setQuality(q: 'low' | 'auto' | 'high'): void {
+    this.quality = q;
+    if (q === 'low') {
+      this.maxPixelRatio = 1.0;
+      this.dynamicResolution = false;
+    } else if (q === 'high') {
+      this.maxPixelRatio = Math.min(this.deviceMax, 2.0);
+      this.dynamicResolution = false;
+    } else {
+      this.maxPixelRatio = Math.min(this.deviceMax, 1.5);
+      this.dynamicResolution = true;
+    }
+    // For LOW/HIGH apply the fixed ratio now; for AUTO clamp the current ratio
+    // into the new ceiling and let the governor take over from there.
+    const target =
+      q === 'auto'
+        ? Math.min(this.renderer.getPixelRatio(), this.maxPixelRatio)
+        : this.maxPixelRatio;
+    if (Math.abs(target - this.renderer.getPixelRatio()) > 1e-3) {
+      this.renderer.setPixelRatio(target);
+      this.post.setSize(this.w, this.h, target);
+    }
   }
 
   applyDestination(dest: Destination): void {

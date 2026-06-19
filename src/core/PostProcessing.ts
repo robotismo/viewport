@@ -84,7 +84,10 @@ const LensFlareShader = {
 
       vec3 streak = vec3(0.0);
       float wsum = 0.0;
-      for (int i = -28; i <= 28; i++) {
+      // 29 taps (step 2 across the same -1..1 span). The cores read from the
+      // soft, wide bloom halo, so halving the tap count is visually identical
+      // to the old 57-tap loop while roughly halving this pass's fetch cost.
+      for (int i = -28; i <= 28; i += 2) {
         float t = float(i) / 28.0;
         float w = 1.0 - abs(t);
         w *= w;

@@ -11,6 +11,27 @@ varying vec3 vLocalPos;
 varying vec3 vViewPos;
 varying vec3 vNormal;
 
+// Cheap 3D Worley F1 (cellular). Returns the distance to the nearest feature
+// point in a jittered lattice — small inside a granule, large on the lane
+// network between cells. Reuses hash33 from lib/noise.glsl. Constant loop
+// bounds keep this GLSL ES 1.00 safe.
+float worleyF1(vec3 x) {
+  vec3 ip = floor(x);
+  vec3 fp = fract(x);
+  float f1 = 1.0;
+  for (int k = -1; k <= 1; k++) {
+    for (int j = -1; j <= 1; j++) {
+      for (int i = -1; i <= 1; i++) {
+        vec3 g = vec3(float(i), float(j), float(k));
+        vec3 o = hash33(ip + g);
+        vec3 d = g + o - fp;
+        f1 = min(f1, dot(d, d));
+      }
+    }
+  }
+  return sqrt(f1);
+}
+
 void main() {
   vec3 p = normalize(vLocalPos);
   float t = uTime * uFlow;
@@ -20,6 +41,15 @@ void main() {
   float n1 = fbm6(q + vec3(0.0, t * 0.6, 0.0));
   float n2 = fbm(q * 2.3 - vec3(t * 0.4, 0.0, t * 0.2));
   float gran = n1 * 0.65 + n2 * 0.35;
+
+  // Intergranular network: a Worley cellular field at ~granule scale. Cell
+  // interiors (small F1) are hot upwelling plasma — brightened and warmed;
+  // the boundaries (large F1) are cool down-flow lanes — darkened into a thin
+  // polygonal mesh. Slow object-space drift so cells churn in place.
+  float cell = worleyF1(q * 1.6 + vec3(0.0, t * 0.5, 0.0));
+  float lane = smoothstep(0.34, 0.62, cell);      // 0 in cell, 1 on the lane
+  float core = 1.0 - smoothstep(0.0, 0.30, cell); // bright granule interior
+  gran = gran + core * 0.10 - lane * 0.14;
 
   vec3 base = mix(uColor, uHot, smoothstep(0.30, 0.78, gran));
   float veins = pow(max(gran, 0.0), 3.0);

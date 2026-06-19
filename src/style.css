@@ -136,6 +136,16 @@ body {
 .nav-item.active .dot { background: var(--amber); box-shadow: 0 0 10px var(--amber); }
 .nav-hint { margin-top: 14px; font-size: 10px; letter-spacing: 2px; color: var(--hud-dim); opacity: 0.6; text-align: right; }
 
+/* ── Quality control ──────────────────────────────────────────────────── */
+.quality-control { margin-top: 16px; text-align: right; pointer-events: auto; }
+.qc-label { display: block; font-size: 10px; letter-spacing: 3px; color: var(--hud-dim); opacity: 0.6; margin-bottom: 6px; }
+.qc-seg { display: inline-flex; border: 1px solid var(--edge); border-radius: 6px; overflow: hidden; backdrop-filter: blur(3px); }
+.qc-item { background: var(--glass); border: 0; border-left: 1px solid var(--edge); color: var(--hud-dim); font-family: var(--font); font-size: 10px; letter-spacing: 1.5px; padding: 6px 11px; cursor: pointer; transition: all 0.15s ease; }
+.qc-item:first-child { border-left: 0; }
+.qc-item:hover { color: var(--hud); background: rgba(143, 208, 255, 0.12); }
+.qc-item.active { color: #fff; background: rgba(255, 197, 107, 0.18); }
+.qc-item:focus-visible { outline: 2px solid var(--amber); outline-offset: -2px; }
+
 /* ── Telemetry ────────────────────────────────────────────────────────── */
 .telemetry { position: absolute; bottom: 44px; left: 52px; right: 52px; display: flex; justify-content: space-between; align-items: flex-end; gap: 40px; }
 .intent { max-width: 540px; font-size: 12px; line-height: 1.7; letter-spacing: 0.4px; color: #b8d8f0; opacity: 0.8; }

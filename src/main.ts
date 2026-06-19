@@ -76,7 +76,32 @@ function boot(root: HTMLElement): () => void {
     else load(id);
   }
 
-  const hud = new Hud(root, destinations, (id) => go(id));
+  // Persisted render-quality preference (LOW / AUTO / HIGH).
+  const rawQ = (() => {
+    try {
+      return localStorage.getItem('viewport-quality');
+    } catch {
+      return null;
+    }
+  })();
+  const savedQuality: 'low' | 'auto' | 'high' =
+    rawQ === 'low' || rawQ === 'high' ? rawQ : 'auto';
+  engine.setQuality(savedQuality);
+
+  const hud = new Hud(
+    root,
+    destinations,
+    (id) => go(id),
+    (q) => {
+      engine.setQuality(q);
+      try {
+        localStorage.setItem('viewport-quality', q);
+      } catch {
+        /* private-mode / storage disabled — ignore */
+      }
+    },
+    savedQuality,
+  );
 
   // Initial destination: URL hash wins (shareable deep links), else default.
   const fromHash = location.hash.slice(1);

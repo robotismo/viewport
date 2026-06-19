@@ -22,8 +22,20 @@ varying vec3 vLocalPos;
 vec3 bandPalette(float t) {
   t = clamp(t, 0.0, 0.9999);
   float f = t * float(uBandCount - 1);
-  int i = int(floor(f));
-  return mix(uBands[i], uBands[i + 1], fract(f));
+  float lo = floor(f);
+  float frac = f - lo;
+  // GLSL ES 1.00 only allows uniform arrays to be indexed by a
+  // constant-index-expression in the fragment shader, so we cannot do
+  // uBands[i] with a runtime i. Select the two endpoints via constant-indexed
+  // loops (the loop counter IS a constant-index-expression). uBands is always
+  // padded to length 6, so reading all slots is safe.
+  vec3 cLo = uBands[0];
+  vec3 cHi = uBands[0];
+  for (int k = 0; k < 6; k++) {
+    if (float(k) == lo) cLo = uBands[k];
+    if (float(k) == lo + 1.0) cHi = uBands[k];
+  }
+  return mix(cLo, cHi, frac);
 }
 
 void main() {
