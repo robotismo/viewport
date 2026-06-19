@@ -61,6 +61,20 @@ void main() {
   float tw = 0.78 + 0.22 * sin(uTime * 2.0 + fbm(p * 30.0) * 28.0);
   color += uNightLights * cityField * night * tw * 1.9;
 
+  // Polar aurora: faint emissive curtains over the night-side poles. A ragged
+  // latitude oval hosts vertical folds that scroll slowly in longitude and
+  // shimmer on uTime — a green body with a faint magenta lower fringe. Additive
+  // and night-gated, so the lit hemisphere is never touched.
+  float auroraOval = smoothstep(0.62, 0.80, lat + (fbm(p * 4.0) - 0.5) * 0.18)
+                   * (1.0 - smoothstep(0.86, 0.97, lat));
+  float folds = fbm3(vec3(sp.x, sp.z, 0.0) * 9.0 + vec3(uTime * 0.25, 0.0, 0.0));
+  float curtain = pow(smoothstep(0.42, 0.78, folds), 1.5);
+  float shimmer = 0.7 + 0.3 * sin(uTime * 3.0 + folds * 24.0);
+  float aurora = auroraOval * curtain * shimmer * night;
+  vec3 auroraCol = mix(vec3(0.10, 0.95, 0.55), vec3(0.65, 0.20, 0.85),
+                       smoothstep(0.80, 0.62, lat) * 0.6);
+  color += auroraCol * aurora * 1.1;
+
   // Sun glint off oceans (day side only). Elliptical streak, not a round hotspot:
   // the highlight is stretched along the sun-azimuth (the tangent component of L)
   // so it reads as a reflection of the sun's column on water. Fresnel brightens it

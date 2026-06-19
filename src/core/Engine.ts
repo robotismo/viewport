@@ -169,6 +169,7 @@ export class Engine {
     } else {
       this.maxPixelRatio = Math.min(this.deviceMax, 1.5);
       this.dynamicResolution = true;
+      this.perf.reset(); // fresh measurement window so cross-DPR frames don't trip a spurious step
     }
     // For LOW/HIGH apply the fixed ratio now; for AUTO clamp the current ratio
     // into the new ceiling and let the governor take over from there.

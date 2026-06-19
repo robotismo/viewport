@@ -69,10 +69,12 @@ void main() {
   // H-alpha CHROMOSPHERE: a thin reddish band just inside the limb, broken into
   // spicule-like jets by object-space noise so it flickers in place instead of
   // smearing as the camera orbits. Reuses gran's high frequencies for the jets.
-  float band = smoothstep(0.18, 0.0, mu) * smoothstep(0.0, 0.06, mu);
-  float spicules = 0.5 + 0.5 * fbm3(p * (uScale * 2.0) + vec3(0.0, t * 1.5, 0.0));
+  float band = smoothstep(0.18, 0.0, mu) * smoothstep(0.0, 0.05, mu);
+  // Gate the band into discrete jets that reach 0 in the gaps, so the limb reads
+  // as a jagged spicule rim rather than a continuous ring. Higher frequency = thin spikes.
+  float jets = smoothstep(0.42, 0.72, fbm3(p * (uScale * 3.0) + vec3(0.0, t * 1.5, 0.0)));
   vec3 hAlpha = vec3(1.0, 0.22, 0.16); // linear-ish H-alpha red
-  color += hAlpha * band * spicules * 1.4;
+  color += hAlpha * band * jets * 1.8;
 
   // Light Reinhard knee so granulation and veins survive the bloom threshold
   // instead of clipping to flat white.

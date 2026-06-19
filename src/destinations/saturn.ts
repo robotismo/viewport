@@ -35,6 +35,17 @@ export const saturn: Destination = {
       },
       rings: { innerRadius: 1.28, outerRadius: 2.35, color: [0.84, 0.78, 0.66], opacity: 0.85 },
     },
+    {
+      // A small ice moon, well clear of the ring disc, lit by the same off-axis
+      // sun so it shows a crescent that echoes the planet's terminator — scale
+      // and a second focal point against the dark sky.
+      id: 'shepherd-moon',
+      kind: 'rocky',
+      radius: 0.55,
+      position: [13, 7, -7],
+      rotationPeriod: 160,
+      surface: { landColor: [0.5, 0.5, 0.54], iceColor: [0.82, 0.86, 0.94], seed: 7 },
+    },
   ],
   starfield: { starCount: 8000, milkyWay: true },
   camera: {

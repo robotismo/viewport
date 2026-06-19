@@ -33,6 +33,7 @@ function checkBody(b: BodyConfig, out: string[]): void {
     case 'gasgiant':
       if (!b.gasGiant) out.push(`${where}: kind 'gasgiant' requires a gasGiant config`);
       else if (!b.gasGiant.bands?.length) out.push(`${where}: gasGiant needs ≥1 band`);
+      else b.gasGiant.bands.forEach((band, i) => checkVec3(`${where}.gasGiant.bands[${i}]`, band, out));
       break;
     case 'earthlike':
     case 'rocky':
@@ -82,6 +83,7 @@ export function validateDestination(d: Destination): string[] {
 
   if (d.nebula?.enabled) {
     if (!isNum(d.nebula.radius) || d.nebula.radius <= 0) out.push(`${d.id}: nebula.radius must be > 0`);
+    if (!isNum(d.nebula.density) || d.nebula.density < 0) out.push(`${d.id}: nebula.density must be a non-negative number`);
     checkVec3(`${d.id}.nebula.colorA`, d.nebula.colorA, out);
     checkVec3(`${d.id}.nebula.colorB`, d.nebula.colorB, out);
   }

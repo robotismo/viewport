@@ -52,6 +52,7 @@ void main() {
 
   for (int i = 0; i < MAXSTEPS; i++) {
     if (float(i) >= steps) break;
+    if (trans < 0.04) break; // ray saturated (by dust OR gas) — nothing further is visible
     vec3 p = ro + rd * t;
     vec3 lp = (p - uCenter) / uRadius;
     float fall = smoothstep(1.0, 0.12, length(lp)); // soft spherical envelope

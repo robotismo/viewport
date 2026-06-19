@@ -62,8 +62,8 @@ export function buildEarthlike(cfg: BodyConfig, sunPosition: THREE.Vector3): Bod
     const a = cfg.atmosphere;
     atmoGeo = new THREE.SphereGeometry(
       cfg.radius * (1.0 + Math.max(a.thickness, 0.01) * 1.7),
-      96,
-      96,
+      48,
+      48,
     );
     atmoMat = new THREE.ShaderMaterial({
       uniforms: {

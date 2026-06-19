@@ -57,8 +57,10 @@ function boot(root: HTMLElement): () => void {
 
   let world: BuiltWorld | null = null;
   let activeId = '';
+  let torn = false;
 
   function load(id: string): void {
+    if (torn) return; // a warp timer may fire after teardown; don't build on a disposed engine
     if (world) world.dispose();
     const dest = getDestination(id);
     world = buildWorld(dest, engine);
@@ -154,6 +156,7 @@ function boot(root: HTMLElement): () => void {
   (window as unknown as { __viewport: unknown }).__viewport = { engine, load: go };
 
   return () => {
+    torn = true;
     window.clearInterval(telemetry);
     ac.abort();
     if (world) world.dispose();

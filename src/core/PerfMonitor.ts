@@ -16,6 +16,14 @@ export class PerfMonitor {
     this.targetFps = targetFps;
   }
 
+  /** Drop the current measurement window + hysteresis (e.g. after a DPR/quality change). */
+  reset(): void {
+    this.accTime = 0;
+    this.accFrames = 0;
+    this.below = 0;
+    this.above = 0;
+  }
+
   /** Returns the pixel ratio the renderer should use this frame. */
   sample(dt: number, current: number, max: number): number {
     this.accTime += dt;
